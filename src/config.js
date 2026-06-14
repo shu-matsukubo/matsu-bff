@@ -40,7 +40,7 @@ export const config = {
   backendApiBaseUrl: requiredEnv('BACKEND_API_BASE_URL', 'http://localhost:18080/api'),
   authBaseUrl: requiredEnv('AUTH_BASE_URL', 'http://localhost:18081'),
   redisUrl: requiredEnv('REDIS_URL', 'redis://localhost:16379'),
-  sessionCookieName: requiredEnv('SESSION_COOKIE_NAME', 'kakeibo_session'),
+  sessionCookieName: requiredEnv('SESSION_COOKIE_NAME', 'matsu-session'),
   sessionTtlSeconds: intEnv('SESSION_TTL_SECONDS', 60 * 60 * 24 * 30),
   cookieSecure: boolEnv('COOKIE_SECURE', process.env.NODE_ENV === 'production'),
 };

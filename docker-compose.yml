@@ -2,7 +2,7 @@ services:
   bff:
     build:
       context: .
-    container_name: Kakeibo_bff
+    container_name: matsu-bff
     ports:
       - 18082:18082
     environment:
@@ -11,7 +11,7 @@ services:
       - BACKEND_API_BASE_URL=http://host.docker.internal:18080/api
       - AUTH_BASE_URL=http://host.docker.internal:18081
       - REDIS_URL=redis://redis:6379
-      - SESSION_COOKIE_NAME=kakeibo_session
+      - SESSION_COOKIE_NAME=matsu-session
       - SESSION_TTL_SECONDS=2592000
       - COOKIE_SECURE=false
     depends_on:
@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    container_name: Kakeibo_bff_redis
+    container_name: matsu-bff-redis
     ports:
       - 16379:6379
     volumes:

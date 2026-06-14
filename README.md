@@ -1,6 +1,6 @@
-# Kakeibo BFF
+# matsu BFF
 
-Kakeibo front-end talks to this BFF instead of calling the Laravel backend or auth server directly.
+matsu front-end talks to this BFF instead of calling the Laravel backend or auth server directly.
 
 ## Responsibilities
 

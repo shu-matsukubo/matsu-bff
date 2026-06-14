@@ -204,5 +204,5 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(config.port, '0.0.0.0', () => {
-  console.log(`Kakeibo BFF listening on :${config.port}`);
+  console.log(`matsu BFF listening on :${config.port}`);
 });
