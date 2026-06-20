@@ -1,4 +1,4 @@
-const requiredEnv = (name, fallback) => {
+const requiredEnv = (name: string, fallback?: string): string => {
   const value = process.env[name] ?? fallback;
 
   if (!value) {
@@ -8,7 +8,7 @@ const requiredEnv = (name, fallback) => {
   return value;
 };
 
-const boolEnv = (name, fallback) => {
+const boolEnv = (name: string, fallback: boolean): boolean => {
   const value = process.env[name];
 
   if (value == null) {
@@ -18,7 +18,7 @@ const boolEnv = (name, fallback) => {
   return value.toLowerCase() === 'true';
 };
 
-const intEnv = (name, fallback) => {
+const intEnv = (name: string, fallback: number): number => {
   const value = process.env[name];
 
   if (value == null) {
@@ -43,4 +43,4 @@ export const config = {
   sessionCookieName: requiredEnv('SESSION_COOKIE_NAME', 'matsu-session'),
   sessionTtlSeconds: intEnv('SESSION_TTL_SECONDS', 60 * 60 * 24 * 30),
   cookieSecure: boolEnv('COOKIE_SECURE', process.env.NODE_ENV === 'production'),
-};
+} as const;

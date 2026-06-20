@@ -2,6 +2,7 @@ services:
   bff:
     build:
       context: .
+      target: production
     container_name: matsu-bff
     ports:
       - 18082:18082
@@ -24,6 +25,29 @@ services:
       - 16379:6379
     volumes:
       - redis_data:/data
+
+  bff-dev:
+    profiles:
+      - dev
+    build:
+      context: .
+      target: development
+    container_name: matsu-bff-dev
+    ports:
+      - 18082:18082
+    volumes:
+      - ./src:/app/src
+    environment:
+      - PORT=18082
+      - FRONTEND_ORIGIN=http://localhost:5173
+      - BACKEND_API_BASE_URL=http://host.docker.internal:18080/api
+      - AUTH_BASE_URL=http://host.docker.internal:18081
+      - REDIS_URL=redis://redis:6379
+      - SESSION_COOKIE_NAME=matsu-session
+      - SESSION_TTL_SECONDS=2592000
+      - COOKIE_SECURE=false
+    depends_on:
+      - redis
 
 volumes:
   redis_data:

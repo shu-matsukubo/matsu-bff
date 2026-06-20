@@ -1,9 +1,9 @@
 import net from 'node:net';
-import { config } from './config.js';
+import { config } from '../config.js';
 
 const redisUrl = new URL(config.redisUrl);
 
-const encodeCommand = (parts) =>
+const encodeCommand = (parts: Array<string | number>): string =>
   `*${parts.length}\r\n${parts
     .map((part) => {
       const value = String(part);
@@ -11,7 +11,7 @@ const encodeCommand = (parts) =>
     })
     .join('')}`;
 
-const parseResponse = (buffer) => {
+const parseResponse = (buffer: Buffer): string | number | null => {
   const text = buffer.toString('utf8');
   const type = text[0];
 
@@ -42,14 +42,14 @@ const parseResponse = (buffer) => {
   throw new Error('Unsupported Redis response.');
 };
 
-const command = (parts) =>
+const command = (parts: Array<string | number>): Promise<string | number | null> =>
   new Promise((resolve, reject) => {
     const socket = net.createConnection({
       host: redisUrl.hostname,
       port: Number(redisUrl.port || 6379),
     });
 
-    const chunks = [];
+    const chunks: Buffer[] = [];
 
     socket.setTimeout(5000);
 
@@ -57,7 +57,7 @@ const command = (parts) =>
       socket.write(encodeCommand(parts));
     });
 
-    socket.on('data', (chunk) => {
+    socket.on('data', (chunk: Buffer) => {
       chunks.push(chunk);
       socket.end();
     });
@@ -78,8 +78,8 @@ const command = (parts) =>
   });
 
 export const redis = {
-  get: (key) => command(['GET', key]),
-  setJson: (key, value, ttlSeconds) =>
+  get: (key: string) => command(['GET', key]),
+  setJson: (key: string, value: unknown, ttlSeconds: number) =>
     command(['SET', key, JSON.stringify(value), 'EX', ttlSeconds]),
-  del: (key) => command(['DEL', key]),
+  del: (key: string) => command(['DEL', key]),
 };

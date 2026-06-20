@@ -2,6 +2,8 @@
 
 matsu front-end talks to this BFF instead of calling the Laravel backend or auth server directly.
 
+Built with **TypeScript** and **[Hono](https://hono.dev/)**.
+
 ## Responsibilities
 
 - Owns the browser session using an `HttpOnly` cookie.
@@ -11,11 +13,17 @@ matsu front-end talks to this BFF instead of calling the Laravel backend or auth
 
 ## Local Development
 
+Docker 内で依存関係をインストールして開発サーバーを起動します。
+
 ```bash
-npm run dev
+docker compose --profile dev up bff-dev
 ```
 
-This BFF currently uses only Node.js built-in modules, so dependency installation is not required.
+本番相当のビルド済みイメージで起動する場合:
+
+```bash
+docker compose up -d --build
+```
 
 Default local endpoints:
 
@@ -25,10 +33,38 @@ Default local endpoints:
 - Auth server: `http://localhost:18081`
 - Redis: `localhost:16379`
 
+## Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | TypeScript を `tsx watch` でホットリロード実行 |
+| `npm run build` | `tsc` で `dist/` にコンパイル |
+| `npm run start` | ビルド済み `dist/index.js` を起動 |
+| `npm run typecheck` | 型チェックのみ |
+
+## Project Structure
+
+```
+src/
+├── index.ts              # Hono アプリのエントリポイント
+├── config.ts             # 環境変数
+├── middleware/session.ts # セッション Cookie / 認証ミドルウェア
+├── routes/
+│   ├── health.ts         # GET /health
+│   ├── auth.ts           # /auth/*
+│   └── api.ts            # /api/* プロキシ
+├── services/
+│   ├── authClient.ts     # matsu-auth への HTTP クライアント
+│   ├── sessionStore.ts   # Redis セッション管理
+│   ├── sessionRefresh.ts # トークンリフレッシュ
+│   └── redisClient.ts    # 最小 Redis クライアント
+└── types/
+```
+
 ## Docker
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 The BFF owns its Redis container. Other services should not depend on this Redis instance.
