@@ -21,16 +21,10 @@ The frontend talks to this service instead of calling the Laravel API or auth se
 
 ## Local Development
 
-Start the development container with hot reload:
+Start the BFF and Redis containers with hot reload:
 
 ```bash
-docker compose --profile dev up bff-dev
-```
-
-Start a production-like local container:
-
-```bash
-docker compose up -d --build
+docker compose up
 ```
 
 Default local endpoints:
@@ -87,4 +81,5 @@ For local HTTP development, `COOKIE_SECURE=false` is expected. Use `COOKIE_SECUR
 
 ## Docker
 
-The BFF owns its Redis container. Other services should not depend on this Redis instance.
+The Docker environment is intended for local development only. The BFF owns its Redis
+container, and other services should not depend on this Redis instance.
