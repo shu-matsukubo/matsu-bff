@@ -1,81 +1,193 @@
-import type { Context } from "hono";
-import { Hono } from "hono";
-import { config } from "../config.js";
+import { createRoute, type OpenAPIHono } from '@hono/zod-openapi';
+import { requireSession } from '../middleware/session.js';
+import { badRequestResponse, errorResponse } from '../schemas/common.js';
 import {
-  clearSessionCookie,
-  requireSession,
-  type SessionVariables,
-} from "../middleware/session.js";
-import { deleteSession } from "../services/sessionStore.js";
-import { refreshSession } from "../services/sessionRefresh.js";
-import type { Session } from "../types/session.js";
+  ExpenseCategoryListSchema,
+  ExpenseCreateRequestSchema,
+  ExpenseCreatedResponseSchema,
+  ExpenseHistoryQuerySchema,
+  ExpenseHistoryResponseSchema,
+  ExpensePaymentMethodListSchema,
+  ExpenseSummaryQuerySchema,
+  ExpenseSummaryResponseSchema,
+} from '../schemas/expenses.js';
+import { parseBackendResponse, requestBackend } from '../services/backendClient.js';
+import type { AppEnv } from '../types/app.js';
 
-export const apiRoutes = new Hono<{ Variables: SessionVariables }>();
-
-const proxyToBackend = async (
-  c: Context,
-  session: Session,
-): Promise<Response> => {
-  const url = new URL(c.req.url);
-  const basePath = c.req.path.replace(/^\/api/, "") || "/";
-  const pathAndQuery = `${basePath}${url.search}` || "/";
-
-  const targetUrl = `${config.backendApiBaseUrl}${pathAndQuery}`;
-  const headers: Record<string, string> = {
-    accept: c.req.header("accept") ?? "application/json",
-    authorization: `Bearer ${session.accessToken}`,
-  };
-
-  const hasBody = !["GET", "HEAD"].includes(c.req.method);
-  let body: string | undefined;
-
-  if (hasBody) {
-    const text = await c.req.text();
-
-    if (text) {
-      headers["content-type"] = "application/json";
-      body = text;
-    }
-  }
-
-  return fetch(targetUrl, {
-    method: c.req.method,
-    headers,
-    body,
-  });
+const sessionSecurity = [{ SessionCookie: [] }];
+const protectedRoute = {
+  security: sessionSecurity,
+  middleware: [requireSession],
+};
+const protectedErrors = {
+  400: badRequestResponse,
+  401: errorResponse('The browser session is missing or expired.'),
+  422: errorResponse('The backend rejected the request.'),
+  502: errorResponse('The backend is unavailable or violated the BFF response contract.'),
 };
 
-const forwardBackendResponse = async (
-  _c: Context,
-  backendResponse: Response,
-) => {
-  const contentType =
-    backendResponse.headers.get("content-type") ??
-    "application/json; charset=utf-8";
-  const text = await backendResponse.text();
-
-  return new Response(text, {
-    status: backendResponse.status,
-    headers: { "content-type": contentType },
-  });
-};
-
-apiRoutes.all("/*", requireSession, async (c) => {
-  const sessionId = c.get("sessionId");
-  const session = c.get("session");
-
-  let backendResponse = await proxyToBackend(c, session);
-
-  if (backendResponse.status === 401) {
-    try {
-      const refreshed = await refreshSession(sessionId, session);
-      backendResponse = await proxyToBackend(c, refreshed);
-    } catch {
-      await deleteSession(sessionId);
-      clearSessionCookie(c);
-      return c.json({ message: "Unauthenticated." }, 401);
-    }
-  }
-
-  return forwardBackendResponse(c, backendResponse);
+const summaryRoute = createRoute({
+  method: 'get',
+  path: '/api/expenses/summary',
+  tags: ['Expenses'],
+  summary: 'Get an expense summary',
+  ...protectedRoute,
+  request: {
+    query: ExpenseSummaryQuerySchema,
+  },
+  responses: {
+    200: {
+      description: 'Expense summary.',
+      content: {
+        'application/json': {
+          schema: ExpenseSummaryResponseSchema,
+        },
+      },
+    },
+    ...protectedErrors,
+  },
 });
+
+const historyRoute = createRoute({
+  method: 'get',
+  path: '/api/expenses/history',
+  tags: ['Expenses'],
+  summary: 'Get expense history for a category',
+  ...protectedRoute,
+  request: {
+    query: ExpenseHistoryQuerySchema,
+  },
+  responses: {
+    200: {
+      description: 'Expense history.',
+      content: {
+        'application/json': {
+          schema: ExpenseHistoryResponseSchema,
+        },
+      },
+    },
+    ...protectedErrors,
+  },
+});
+
+const createExpenseRoute = createRoute({
+  method: 'post',
+  path: '/api/expenses',
+  tags: ['Expenses'],
+  summary: 'Create an expense',
+  ...protectedRoute,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: ExpenseCreateRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'The expense was created.',
+      content: {
+        'application/json': {
+          schema: ExpenseCreatedResponseSchema,
+        },
+      },
+    },
+    ...protectedErrors,
+  },
+});
+
+const paymentMethodsRoute = createRoute({
+  method: 'get',
+  path: '/api/payment-methods',
+  tags: ['Expense masters'],
+  summary: 'List active payment methods',
+  ...protectedRoute,
+  responses: {
+    200: {
+      description: 'Active payment methods.',
+      content: {
+        'application/json': {
+          schema: ExpensePaymentMethodListSchema,
+        },
+      },
+    },
+    ...protectedErrors,
+  },
+});
+
+const categoriesRoute = createRoute({
+  method: 'get',
+  path: '/api/categories',
+  tags: ['Expense masters'],
+  summary: 'List active expense categories',
+  ...protectedRoute,
+  responses: {
+    200: {
+      description: 'Active expense categories.',
+      content: {
+        'application/json': {
+          schema: ExpenseCategoryListSchema,
+        },
+      },
+    },
+    ...protectedErrors,
+  },
+});
+
+export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
+  app.openapi(summaryRoute, async (c) => {
+    const query = c.req.valid('query');
+    const data = await requestBackend(c, {
+      path: '/expenses',
+      query: {
+        mode: 'summary',
+        start_date: query.start_date,
+        end_date: query.end_date,
+        group_by: query.group_by ?? 'category',
+      },
+    });
+
+    return c.json(parseBackendResponse(ExpenseSummaryResponseSchema, data, 'expense summary'), 200);
+  });
+
+  app.openapi(historyRoute, async (c) => {
+    const query = c.req.valid('query');
+    const data = await requestBackend(c, {
+      path: '/expenses',
+      query: {
+        mode: 'history',
+        start_date: query.start_date,
+        end_date: query.end_date,
+        category_id: query.category_id,
+      },
+    });
+
+    return c.json(parseBackendResponse(ExpenseHistoryResponseSchema, data, 'expense history'), 200);
+  });
+
+  app.openapi(createExpenseRoute, async (c) => {
+    await requestBackend(c, {
+      path: '/expenses',
+      method: 'POST',
+      body: c.req.valid('json'),
+    });
+
+    return c.json({ created: true as const }, 201);
+  });
+
+  app.openapi(paymentMethodsRoute, async (c) => {
+    const data = await requestBackend(c, { path: '/payment-methods' });
+    return c.json(
+      parseBackendResponse(ExpensePaymentMethodListSchema, data, 'payment method list'),
+      200,
+    );
+  });
+
+  app.openapi(categoriesRoute, async (c) => {
+    const data = await requestBackend(c, { path: '/categories' });
+    return c.json(parseBackendResponse(ExpenseCategoryListSchema, data, 'category list'), 200);
+  });
+};
