@@ -1,8 +1,13 @@
-import { createRoute, type OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
+import { config } from '../config.js';
 import {
+  clearAuthorizationStateCookie,
   clearSessionCookie,
+  getAuthorizationStateCookie,
   getSessionId,
   requireSession,
+  setAuthorizationStateCookie,
   setSessionCookie,
 } from '../middleware/session.js';
 import {
@@ -12,11 +17,81 @@ import {
 } from '../schemas/auth.js';
 import { errorResponse, validationErrorResponse } from '../schemas/common.js';
 import * as authClient from '../services/authClient.js';
+import {
+  consumeAuthorizationFlow,
+  startAuthorizationFlow,
+} from '../services/authorizationFlowStore.js';
 import { refreshSession } from '../services/sessionRefresh.js';
 import { createSession, deleteSession } from '../services/sessionStore.js';
 import type { AppEnv } from '../types/app.js';
+import { authorizationErrorPage } from '../views/authorizationError.js';
 
 const sessionSecurity = [{ SessionCookie: [] }];
+
+const redirectResponse = (description: string) => ({
+  description,
+  headers: {
+    Location: {
+      description: 'Redirect destination.',
+      schema: {
+        type: 'string' as const,
+        format: 'uri',
+      },
+    },
+  },
+});
+
+const htmlErrorResponse = (description: string) => ({
+  description,
+  content: {
+    'text/html': {
+      schema: z.string(),
+    },
+  },
+});
+
+const setAuthorizationErrorHeaders = (c: Context): void => {
+  c.header('Cache-Control', 'no-store');
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+  );
+  c.header('Referrer-Policy', 'no-referrer');
+  c.header('X-Frame-Options', 'DENY');
+};
+
+const beginLoginRoute = createRoute({
+  method: 'get',
+  path: '/auth/login',
+  tags: ['Authentication'],
+  summary: 'Start the authorization code login flow',
+  responses: {
+    302: redirectResponse('Redirect to the authentication server.'),
+    502: htmlErrorResponse('A retry page is shown when the authorization flow cannot be started.'),
+  },
+});
+
+const callbackRoute = createRoute({
+  method: 'get',
+  path: '/auth/callback',
+  tags: ['Authentication'],
+  summary: 'Complete the authorization code login flow',
+  request: {
+    query: z.object({
+      code: z.string().min(1),
+      state: z.string().min(1),
+    }),
+  },
+  responses: {
+    302: redirectResponse('Login succeeded and the browser returns to the frontend.'),
+    400: htmlErrorResponse(
+      'A retry page is shown for an invalid or expired authorization response.'
+    ),
+    502: htmlErrorResponse(
+      'A retry page is shown when the authentication service cannot complete the login.'
+    ),
+  },
+});
 
 const sessionRoute = createRoute({
   method: 'get',
@@ -140,6 +215,48 @@ const logoutRoute = createRoute({
 });
 
 export const registerAuthRoutes = (app: OpenAPIHono<AppEnv>): void => {
+  app.openapi(beginLoginRoute, async c => {
+    try {
+      const flow = await startAuthorizationFlow();
+      setAuthorizationStateCookie(c, flow.state);
+      return c.redirect(flow.authorizationUrl, 302);
+    } catch (error) {
+      console.error('Could not start the authorization flow.', error);
+      setAuthorizationErrorHeaders(c);
+      return c.html(authorizationErrorPage, 502);
+    }
+  });
+
+  app.openapi(callbackRoute, async c => {
+    const { code, state } = c.req.valid('query');
+    const browserState = getAuthorizationStateCookie(c);
+
+    clearAuthorizationStateCookie(c);
+
+    if (browserState !== state) {
+      setAuthorizationErrorHeaders(c);
+      return c.html(authorizationErrorPage, 400);
+    }
+
+    const flow = await consumeAuthorizationFlow(state);
+
+    if (!flow) {
+      setAuthorizationErrorHeaders(c);
+      return c.html(authorizationErrorPage, 400);
+    }
+
+    try {
+      const tokens = await authClient.exchangeAuthorizationCode(code, flow.codeVerifier);
+      const sessionId = await createSession(tokens);
+      setSessionCookie(c, sessionId);
+      return c.redirect(config.frontendOrigin, 302);
+    } catch (error) {
+      console.error('Could not complete the authorization flow.', error);
+      setAuthorizationErrorHeaders(c);
+      return c.html(authorizationErrorPage, 502);
+    }
+  });
+
   app.openapi(sessionRoute, c => c.json({ authenticated: true as const }, 200));
 
   app.openapi(loginRoute, async c => {

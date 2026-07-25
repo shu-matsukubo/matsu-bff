@@ -79,6 +79,7 @@ const command = (parts: (string | number)[]): Promise<string | number | null> =>
 
 export const redis = {
   get: (key: string) => command(['GET', key]),
+  getDel: (key: string) => command(['GETDEL', key]),
   setJson: (key: string, value: unknown, ttlSeconds: number) =>
     command(['SET', key, JSON.stringify(value), 'EX', ttlSeconds]),
   del: (key: string) => command(['DEL', key]),

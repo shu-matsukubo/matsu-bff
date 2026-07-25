@@ -347,40 +347,35 @@
         }
       }
     },
-    "/auth/session": {
+    "/auth/login": {
       "get": {
         "tags": ["Authentication"],
-        "summary": "Check the browser session",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
+        "summary": "Start the authorization code login flow",
         "responses": {
-          "200": {
-            "description": "The browser session is authenticated.",
-            "content": {
-              "application/json": {
+          "302": {
+            "description": "Redirect to the authentication server.",
+            "headers": {
+              "Location": {
+                "description": "Redirect destination.",
                 "schema": {
-                  "$ref": "#/components/schemas/AuthenticatedResponse"
+                  "type": "string",
+                  "format": "uri"
                 }
               }
             }
           },
-          "401": {
-            "description": "The browser session is missing or expired.",
+          "502": {
+            "description": "A retry page is shown when the authorization flow cannot be started.",
             "content": {
-              "application/json": {
+              "text/html": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "string"
                 }
               }
             }
           }
         }
-      }
-    },
-    "/auth/login": {
+      },
       "post": {
         "tags": ["Authentication"],
         "summary": "Log in and create a browser session",
@@ -427,6 +422,99 @@
           },
           "502": {
             "description": "The authentication service is unavailable or returned an invalid response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/callback": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Complete the authorization code login flow",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "code",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "state",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Login succeeded and the browser returns to the frontend.",
+            "headers": {
+              "Location": {
+                "description": "Redirect destination.",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A retry page is shown for an invalid or expired authorization response.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "A retry page is shown when the authentication service cannot complete the login.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Check the browser session",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The browser session is authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The browser session is missing or expired.",
             "content": {
               "application/json": {
                 "schema": {

@@ -10,6 +10,8 @@ export interface SessionVariables {
   session: Session;
 }
 
+const authorizationStateCookieName = `${config.sessionCookieName}-oauth-state`;
+
 export const setSessionCookie = (c: Context, sessionId: string): void => {
   setCookie(c, config.sessionCookieName, sessionId, {
     path: '/',
@@ -30,6 +32,28 @@ export const clearSessionCookie = (c: Context): void => {
 
 export const getSessionId = (c: Context): string | undefined =>
   getCookie(c, config.sessionCookieName);
+
+export const setAuthorizationStateCookie = (c: Context, state: string): void => {
+  setCookie(c, authorizationStateCookieName, state, {
+    path: '/auth/callback',
+    maxAge: config.authorizationFlowTtlSeconds,
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: config.cookieSecure,
+  });
+};
+
+export const getAuthorizationStateCookie = (c: Context): string | undefined =>
+  getCookie(c, authorizationStateCookieName);
+
+export const clearAuthorizationStateCookie = (c: Context): void => {
+  deleteCookie(c, authorizationStateCookieName, {
+    path: '/auth/callback',
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: config.cookieSecure,
+  });
+};
 
 export const requireSession = createMiddleware<{ Variables: SessionVariables }>(async (c, next) => {
   const sessionId = getSessionId(c);

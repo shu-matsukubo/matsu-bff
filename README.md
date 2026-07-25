@@ -8,7 +8,8 @@ The frontend talks to this service instead of calling the Laravel API or auth se
 
 - Own the browser session using an `HttpOnly` cookie.
 - Store auth server access and refresh tokens in Redis.
-- Call `matsu-auth` for login, registration, session refresh, and session checks.
+- Act as an OAuth confidential client using Authorization Code + PKCE.
+- Call `matsu-auth` for code exchange and refresh-token rotation.
 - Expose explicit typed routes backed by `matsu-api` with `Authorization: Bearer <access token>`.
 - Validate browser requests and successful Laravel responses against the BFF contract.
 
@@ -81,12 +82,18 @@ Important values:
 
 ```text
 PORT=18082
+PUBLIC_BASE_URL=http://localhost:18082
 FRONTEND_ORIGIN=http://localhost:5173
 BACKEND_API_BASE_URL=http://host.docker.internal:18080/api
 AUTH_BASE_URL=http://host.docker.internal:18081
+AUTH_PUBLIC_BASE_URL=http://localhost:18081
+AUTH_CLIENT_ID=matsu-bff
+AUTH_CLIENT_SECRET=matsu-bff-dev-secret
+AUTH_SCOPE=matsu-api
 REDIS_URL=redis://redis:6379
 SESSION_COOKIE_NAME=matsu-session
 SESSION_TTL_SECONDS=2592000
+AUTHORIZATION_FLOW_TTL_SECONDS=600
 COOKIE_SECURE=false
 ```
 
@@ -103,6 +110,7 @@ For local HTTP development, `COOKIE_SECURE=false` is expected. Use `COOKIE_SECUR
 - `src/routes/api.ts`: Explicit typed Laravel-backed routes.
 - `src/schemas`: Request and response contracts shared by Zod and OpenAPI.
 - `src/services/authClient.ts`: HTTP client for `matsu-auth`.
+- `src/services/authorizationFlowStore.ts`: Short-lived OAuth state and PKCE verifier storage.
 - `src/services/sessionStore.ts`: Redis-backed session store.
 - `src/services/sessionRefresh.ts`: Token refresh helper.
 - `src/services/redisClient.ts`: Redis client factory.

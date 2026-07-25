@@ -16,6 +16,7 @@ void test('GET /openapi.json exposes the registered BFF paths', async () => {
   assert.equal(response.status, 200);
   assert.ok(document.paths?.['/api/expenses/summary']);
   assert.ok(document.paths?.['/auth/login']);
+  assert.ok(document.paths?.['/auth/callback']);
 });
 
 void test('POST /auth/login rejects invalid input before calling the auth service', async () => {
@@ -39,4 +40,16 @@ void test('POST /auth/login returns 400 for malformed JSON', async () => {
   });
 
   assert.equal(response.status, 400);
+});
+
+void test('GET /auth/callback rejects a response not bound to this browser', async () => {
+  const response = await app.request('/auth/callback?code=test-code&state=test-state');
+  const html = await response.text();
+
+  assert.equal(response.status, 400);
+  assert.match(response.headers.get('content-type') ?? '', /^text\/html/);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.match(response.headers.get('content-security-policy') ?? '', /connect-src 'self'/);
+  assert.match(html, /ログインをやり直してください/);
+  assert.match(html, /href="\/auth\/login"/);
 });
