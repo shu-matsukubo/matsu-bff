@@ -48,12 +48,12 @@ export const app = new OpenAPIHono<AppEnv>({
       return c.json(
         {
           message: 'Request validation failed.',
-          issues: result.error.issues.map((issue) => ({
+          issues: result.error.issues.map(issue => ({
             path: issue.path.join('.'),
             message: issue.message,
           })),
         },
-        400,
+        400
       );
     }
   },
@@ -66,7 +66,7 @@ app.use(
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['content-type', 'accept'],
-  }),
+  })
 );
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
@@ -83,7 +83,7 @@ registerApiRoutes(app);
 app.doc('/openapi.json', openApiConfig);
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));
 
-app.notFound((c) => c.json({ message: 'Not found.' }, 404));
+app.notFound(c => c.json({ message: 'Not found.' }, 404));
 
 app.onError((error, c) => {
   if ((error instanceof HTTPException && error.status === 400) || error instanceof SyntaxError) {
@@ -92,7 +92,7 @@ app.onError((error, c) => {
         message: 'Request validation failed.',
         issues: [{ path: 'body', message: 'The request body must be valid JSON.' }],
       },
-      400,
+      400
     );
   }
 
@@ -109,11 +109,7 @@ app.onError((error, c) => {
         ? error.statusCode
         : 502;
 
-    return errorResponse(
-      c,
-      status,
-      getErrorMessage(error.data, 'Authentication service error.'),
-    );
+    return errorResponse(c, status, getErrorMessage(error.data, 'Authentication service error.'));
   }
 
   console.error(error);

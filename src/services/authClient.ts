@@ -42,7 +42,8 @@ const postAuth = async (path: string, body: unknown): Promise<AuthTokens> => {
 
 export const login = (request: unknown): Promise<AuthTokens> => postAuth('/auth/login', request);
 
-export const register = (request: unknown): Promise<AuthTokens> => postAuth('/auth/register', request);
+export const register = (request: unknown): Promise<AuthTokens> =>
+  postAuth('/auth/register', request);
 
 export const refresh = (refreshToken: string): Promise<AuthTokens> =>
   postAuth('/auth/refresh', {

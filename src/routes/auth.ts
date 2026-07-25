@@ -64,7 +64,9 @@ const loginRoute = createRoute({
     },
     400: validationErrorResponse,
     401: errorResponse('The credentials are invalid.'),
-    502: errorResponse('The authentication service is unavailable or returned an invalid response.'),
+    502: errorResponse(
+      'The authentication service is unavailable or returned an invalid response.'
+    ),
   },
 });
 
@@ -94,7 +96,9 @@ const registerRoute = createRoute({
     },
     400: validationErrorResponse,
     409: errorResponse('The email address is already registered.'),
-    502: errorResponse('The authentication service is unavailable or returned an invalid response.'),
+    502: errorResponse(
+      'The authentication service is unavailable or returned an invalid response.'
+    ),
   },
 });
 
@@ -136,23 +140,23 @@ const logoutRoute = createRoute({
 });
 
 export const registerAuthRoutes = (app: OpenAPIHono<AppEnv>): void => {
-  app.openapi(sessionRoute, (c) => c.json({ authenticated: true as const }, 200));
+  app.openapi(sessionRoute, c => c.json({ authenticated: true as const }, 200));
 
-  app.openapi(loginRoute, async (c) => {
+  app.openapi(loginRoute, async c => {
     const tokens = await authClient.login(c.req.valid('json'));
     const sessionId = await createSession(tokens);
     setSessionCookie(c, sessionId);
     return c.json({ authenticated: true as const }, 200);
   });
 
-  app.openapi(registerRoute, async (c) => {
+  app.openapi(registerRoute, async c => {
     const tokens = await authClient.register(c.req.valid('json'));
     const sessionId = await createSession(tokens);
     setSessionCookie(c, sessionId);
     return c.json({ authenticated: true as const }, 200);
   });
 
-  app.openapi(refreshRoute, async (c) => {
+  app.openapi(refreshRoute, async c => {
     const sessionId = c.get('sessionId');
     const session = c.get('session');
 
@@ -166,7 +170,7 @@ export const registerAuthRoutes = (app: OpenAPIHono<AppEnv>): void => {
     }
   });
 
-  app.openapi(logoutRoute, async (c) => {
+  app.openapi(logoutRoute, async c => {
     const sessionId = getSessionId(c);
 
     if (sessionId) {

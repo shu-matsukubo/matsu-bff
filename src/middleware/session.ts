@@ -5,10 +5,10 @@ import { config } from '../config.js';
 import { getSession } from '../services/sessionStore.js';
 import type { Session } from '../types/session.js';
 
-export type SessionVariables = {
+export interface SessionVariables {
   sessionId: string;
   session: Session;
-};
+}
 
 export const setSessionCookie = (c: Context, sessionId: string): void => {
   setCookie(c, config.sessionCookieName, sessionId, {

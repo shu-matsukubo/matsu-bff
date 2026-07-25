@@ -55,14 +55,21 @@ npm run openapi:generate
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
-| `npm run dev` | Start the app with `tsx watch`. |
-| `npm run build` | Compile TypeScript into `dist/`. |
-| `npm run start` | Run the compiled `dist/index.js`. |
-| `npm run typecheck` | Run TypeScript without emitting files. |
-| `npm run openapi:generate` | Generate `openapi/openapi.json` from the registered routes. |
-| `npm test` | Run contract smoke tests. |
+| Script                     | Description                                                   |
+| -------------------------- | ------------------------------------------------------------- |
+| `npm run dev`              | Start the app with `tsx watch`.                               |
+| `npm run build`            | Compile TypeScript into `dist/`.                              |
+| `npm run start`            | Run the compiled `dist/index.js`.                             |
+| `npm run lint`             | Run type-aware ESLint with zero warnings allowed.             |
+| `npm run lint:fix`         | Auto-fix ESLint issues where possible.                        |
+| `npm run format`           | Format the project with Prettier.                             |
+| `npm run format:check`     | Check Prettier formatting.                                    |
+| `npm run typecheck`        | Type-check source, tests, and scripts without emitting files. |
+| `npm run check`            | Run ESLint, TypeScript, and Prettier checks.                  |
+| `npm run fix`              | Auto-fix ESLint issues and format the project.                |
+| `npm run openapi:generate` | Generate `openapi/openapi.json` from the registered routes.   |
+| `npm run openapi:check`    | Verify that the generated OpenAPI artifact is current.        |
+| `npm test`                 | Run contract smoke tests.                                     |
 
 On Windows PowerShell, use `npm.cmd run ...` if `npm.ps1` is blocked by execution policy.
 
@@ -106,3 +113,25 @@ For local HTTP development, `COOKIE_SECURE=false` is expected. Use `COOKIE_SECUR
 
 The Docker environment is intended for local development only. The BFF owns its Redis
 container, and other services should not depend on this Redis instance.
+
+Run all quality checks in a one-off container (Redis is not required):
+
+```bash
+docker compose run --rm --no-deps bff npm run check
+```
+
+Auto-fix ESLint issues and format the project through Docker:
+
+```bash
+docker compose run --rm --no-deps bff npm run fix
+```
+
+## CI
+
+GitHub Actions runs on pull requests targeting `develop` or `main`. The workflow installs
+dependencies with `npm ci`, runs the quality checks, verifies the generated OpenAPI artifact,
+runs the tests, and builds the TypeScript project.
+
+```text
+.github/workflows/ci.yml
+```

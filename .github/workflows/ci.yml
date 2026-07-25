@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: Node.js 22 セットアップ
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 依存関係インストール
+        run: npm ci
+
+      - name: 静的解析・フォーマットチェック
+        run: npm run check
+
+      - name: OpenAPI生成物チェック
+        run: npm run openapi:check
+
+      - name: テスト
+        run: npm test
+
+      - name: ビルド
+        run: npm run build

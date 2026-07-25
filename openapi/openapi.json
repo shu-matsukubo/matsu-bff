@@ -40,28 +40,20 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "ok"
-            ]
+            "enum": ["ok"]
           }
         },
-        "required": [
-          "status"
-        ]
+        "required": ["status"]
       },
       "AuthenticatedResponse": {
         "type": "object",
         "properties": {
           "authenticated": {
             "type": "boolean",
-            "enum": [
-              true
-            ]
+            "enum": [true]
           }
         },
-        "required": [
-          "authenticated"
-        ]
+        "required": ["authenticated"]
       },
       "ErrorResponse": {
         "type": "object",
@@ -70,9 +62,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ]
+        "required": ["message"]
       },
       "ValidationErrorResponse": {
         "type": "object",
@@ -87,10 +77,7 @@
             }
           }
         },
-        "required": [
-          "message",
-          "issues"
-        ]
+        "required": ["message", "issues"]
       },
       "ValidationIssue": {
         "type": "object",
@@ -102,10 +89,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "path",
-          "message"
-        ]
+        "required": ["path", "message"]
       },
       "AuthRequest": {
         "type": "object",
@@ -121,24 +105,17 @@
             "example": "password"
           }
         },
-        "required": [
-          "email",
-          "password"
-        ]
+        "required": ["email", "password"]
       },
       "LoggedOutResponse": {
         "type": "object",
         "properties": {
           "authenticated": {
             "type": "boolean",
-            "enum": [
-              false
-            ]
+            "enum": [false]
           }
         },
-        "required": [
-          "authenticated"
-        ]
+        "required": ["authenticated"]
       },
       "ExpenseSummaryResponse": {
         "type": "object",
@@ -153,10 +130,7 @@
             "$ref": "#/components/schemas/ExpenseSummaryMeta"
           }
         },
-        "required": [
-          "data",
-          "meta"
-        ]
+        "required": ["data", "meta"]
       },
       "ExpenseSummary": {
         "type": "object",
@@ -198,12 +172,7 @@
             "example": "2026-07-20"
           }
         },
-        "required": [
-          "total_amount",
-          "total_point",
-          "net_amount",
-          "transaction_count"
-        ]
+        "required": ["total_amount", "total_point", "net_amount", "transaction_count"]
       },
       "ExpenseSummaryMeta": {
         "type": "object",
@@ -221,10 +190,7 @@
             }
           }
         },
-        "required": [
-          "total_net_amount",
-          "fixed_costs"
-        ]
+        "required": ["total_net_amount", "fixed_costs"]
       },
       "FixedCost": {
         "type": "object",
@@ -241,11 +207,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "name",
-          "payment_date",
-          "amount"
-        ]
+        "required": ["name", "payment_date", "amount"]
       },
       "BadRequestResponse": {
         "anyOf": [
@@ -259,11 +221,7 @@
       },
       "ExpenseGroupBy": {
         "type": "string",
-        "enum": [
-          "category",
-          "payment_method",
-          "date"
-        ],
+        "enum": ["category", "payment_method", "date"],
         "default": "category"
       },
       "ExpenseHistoryResponse": {
@@ -288,25 +246,17 @@
             "example": "2026-07-20"
           }
         },
-        "required": [
-          "net_amount",
-          "memo",
-          "date"
-        ]
+        "required": ["net_amount", "memo", "date"]
       },
       "ExpenseCreatedResponse": {
         "type": "object",
         "properties": {
           "created": {
             "type": "boolean",
-            "enum": [
-              true
-            ]
+            "enum": [true]
           }
         },
-        "required": [
-          "created"
-        ]
+        "required": ["created"]
       },
       "ExpenseCreateRequest": {
         "type": "object",
@@ -337,14 +287,7 @@
             "example": "2026-07-20"
           }
         },
-        "required": [
-          "amount",
-          "point_amount",
-          "payment_method_id",
-          "category_id",
-          "memo",
-          "date"
-        ]
+        "required": ["amount", "point_amount", "payment_method_id", "category_id", "memo", "date"]
       },
       "ExpensePaymentMethodList": {
         "type": "array",
@@ -362,10 +305,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       },
       "ExpenseCategoryList": {
         "type": "array",
@@ -383,10 +323,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       }
     },
     "parameters": {}
@@ -394,9 +331,7 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": [
-          "System"
-        ],
+        "tags": ["System"],
         "summary": "Check BFF health",
         "responses": {
           "200": {
@@ -414,9 +349,7 @@
     },
     "/auth/session": {
       "get": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Check the browser session",
         "security": [
           {
@@ -449,9 +382,7 @@
     },
     "/auth/login": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Log in and create a browser session",
         "requestBody": {
           "required": true,
@@ -509,9 +440,7 @@
     },
     "/auth/register": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Register and create a browser session",
         "requestBody": {
           "required": true,
@@ -569,9 +498,7 @@
     },
     "/auth/refresh": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Refresh the server-side access token",
         "security": [
           {
@@ -604,9 +531,7 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Delete the browser session",
         "responses": {
           "200": {
@@ -624,9 +549,7 @@
     },
     "/api/expenses/summary": {
       "get": {
-        "tags": [
-          "Expenses"
-        ],
+        "tags": ["Expenses"],
         "summary": "Get an expense summary",
         "security": [
           {
@@ -719,9 +642,7 @@
     },
     "/api/expenses/history": {
       "get": {
-        "tags": [
-          "Expenses"
-        ],
+        "tags": ["Expenses"],
         "summary": "Get expense history for a category",
         "security": [
           {
@@ -815,9 +736,7 @@
     },
     "/api/expenses": {
       "post": {
-        "tags": [
-          "Expenses"
-        ],
+        "tags": ["Expenses"],
         "summary": "Create an expense",
         "security": [
           {
@@ -890,9 +809,7 @@
     },
     "/api/payment-methods": {
       "get": {
-        "tags": [
-          "Expense masters"
-        ],
+        "tags": ["Expense masters"],
         "summary": "List active payment methods",
         "security": [
           {
@@ -955,9 +872,7 @@
     },
     "/api/categories": {
       "get": {
-        "tags": [
-          "Expense masters"
-        ],
+        "tags": ["Expense masters"],
         "summary": "List active expense categories",
         "security": [
           {

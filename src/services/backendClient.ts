@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { config } from '../config.js';
 import { clearSessionCookie } from '../middleware/session.js';
 import type { AppEnv } from '../types/app.js';
@@ -8,12 +8,12 @@ import type { Session } from '../types/session.js';
 import { refreshSession } from './sessionRefresh.js';
 import { deleteSession } from './sessionStore.js';
 
-type BackendRequest = {
+interface BackendRequest {
   path: string;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   query?: Record<string, string | undefined>;
   body?: unknown;
-};
+}
 
 const buildUrl = ({ path, query }: BackendRequest): string => {
   const baseUrl = config.backendApiBaseUrl.replace(/\/$/, '');
@@ -70,7 +70,7 @@ const publicStatus = (status: number): PublicErrorStatus => {
 
 export const requestBackend = async (
   c: Context<AppEnv>,
-  request: BackendRequest,
+  request: BackendRequest
 ): Promise<unknown> => {
   const sessionId = c.get('sessionId');
   const session = c.get('session');
@@ -92,7 +92,7 @@ export const requestBackend = async (
   if (!response.ok) {
     throw new HttpError(
       publicStatus(response.status),
-      getErrorMessage(data, `Backend API returned ${response.status}.`),
+      getErrorMessage(data, `Backend API returned ${response.status}.`)
     );
   }
 
@@ -102,7 +102,7 @@ export const requestBackend = async (
 export const parseBackendResponse = <Schema extends z.ZodType>(
   schema: Schema,
   data: unknown,
-  operation: string,
+  operation: string
 ): z.output<Schema> => {
   const result = schema.safeParse(data);
 

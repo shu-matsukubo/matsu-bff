@@ -8,7 +8,7 @@ serve(
     hostname: '0.0.0.0',
     port: config.port,
   },
-  (info) => {
+  info => {
     console.log(`matsu BFF listening on :${info.port}`);
-  },
+  }
 );

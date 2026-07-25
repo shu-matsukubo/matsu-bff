@@ -6,7 +6,8 @@ services:
     ports:
       - 18082:18082
     volumes:
-      - ./src:/app/src
+      - ./:/app
+      - /app/node_modules
     environment:
       - PORT=18082
       - FRONTEND_ORIGIN=http://localhost:5173

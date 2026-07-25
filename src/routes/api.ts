@@ -138,7 +138,7 @@ const categoriesRoute = createRoute({
 });
 
 export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
-  app.openapi(summaryRoute, async (c) => {
+  app.openapi(summaryRoute, async c => {
     const query = c.req.valid('query');
     const data = await requestBackend(c, {
       path: '/expenses',
@@ -153,7 +153,7 @@ export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
     return c.json(parseBackendResponse(ExpenseSummaryResponseSchema, data, 'expense summary'), 200);
   });
 
-  app.openapi(historyRoute, async (c) => {
+  app.openapi(historyRoute, async c => {
     const query = c.req.valid('query');
     const data = await requestBackend(c, {
       path: '/expenses',
@@ -168,7 +168,7 @@ export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
     return c.json(parseBackendResponse(ExpenseHistoryResponseSchema, data, 'expense history'), 200);
   });
 
-  app.openapi(createExpenseRoute, async (c) => {
+  app.openapi(createExpenseRoute, async c => {
     await requestBackend(c, {
       path: '/expenses',
       method: 'POST',
@@ -178,15 +178,15 @@ export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
     return c.json({ created: true as const }, 201);
   });
 
-  app.openapi(paymentMethodsRoute, async (c) => {
+  app.openapi(paymentMethodsRoute, async c => {
     const data = await requestBackend(c, { path: '/payment-methods' });
     return c.json(
       parseBackendResponse(ExpensePaymentMethodListSchema, data, 'payment method list'),
-      200,
+      200
     );
   });
 
-  app.openapi(categoriesRoute, async (c) => {
+  app.openapi(categoriesRoute, async c => {
     const data = await requestBackend(c, { path: '/categories' });
     return c.json(parseBackendResponse(ExpenseCategoryListSchema, data, 'category list'), 200);
   });

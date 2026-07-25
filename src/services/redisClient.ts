@@ -3,9 +3,9 @@ import { config } from '../config.js';
 
 const redisUrl = new URL(config.redisUrl);
 
-const encodeCommand = (parts: Array<string | number>): string =>
+const encodeCommand = (parts: (string | number)[]): string =>
   `*${parts.length}\r\n${parts
-    .map((part) => {
+    .map(part => {
       const value = String(part);
       return `$${Buffer.byteLength(value)}\r\n${value}\r\n`;
     })
@@ -42,7 +42,7 @@ const parseResponse = (buffer: Buffer): string | number | null => {
   throw new Error('Unsupported Redis response.');
 };
 
-const command = (parts: Array<string | number>): Promise<string | number | null> =>
+const command = (parts: (string | number)[]): Promise<string | number | null> =>
   new Promise((resolve, reject) => {
     const socket = net.createConnection({
       host: redisUrl.hostname,
@@ -66,7 +66,7 @@ const command = (parts: Array<string | number>): Promise<string | number | null>
       try {
         resolve(parseResponse(Buffer.concat(chunks)));
       } catch (error) {
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
 
