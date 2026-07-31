@@ -1,4 +1,4 @@
-import { createRoute, type OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireSession } from '../middleware/session.js';
 import { badRequestResponse, errorResponse } from '../schemas/common.js';
 import {
@@ -11,7 +11,7 @@ import {
   ExpenseSummaryQuerySchema,
   ExpenseSummaryResponseSchema,
 } from '../schemas/expenses.js';
-import { parseBackendResponse, requestBackend } from '../services/backendClient.js';
+import { requestUpstream } from '../services/upstreamClient.js';
 import type { AppEnv } from '../types/app.js';
 
 const sessionSecurity = [{ SessionCookie: [] }];
@@ -140,7 +140,8 @@ const categoriesRoute = createRoute({
 export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
   app.openapi(summaryRoute, async c => {
     const query = c.req.valid('query');
-    const data = await requestBackend(c, {
+    const data = await requestUpstream(c, {
+      upstream: 'matsuApi',
       path: '/expenses',
       query: {
         mode: 'summary',
@@ -148,14 +149,18 @@ export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
         end_date: query.end_date,
         group_by: query.group_by ?? 'category',
       },
+      expectedStatus: 200,
+      responseSchema: ExpenseSummaryResponseSchema,
+      operation: 'expense summary',
     });
 
-    return c.json(parseBackendResponse(ExpenseSummaryResponseSchema, data, 'expense summary'), 200);
+    return c.json(data, 200);
   });
 
   app.openapi(historyRoute, async c => {
     const query = c.req.valid('query');
-    const data = await requestBackend(c, {
+    const data = await requestUpstream(c, {
+      upstream: 'matsuApi',
       path: '/expenses',
       query: {
         mode: 'history',
@@ -163,31 +168,47 @@ export const registerApiRoutes = (app: OpenAPIHono<AppEnv>): void => {
         end_date: query.end_date,
         category_id: query.category_id,
       },
+      expectedStatus: 200,
+      responseSchema: ExpenseHistoryResponseSchema,
+      operation: 'expense history',
     });
 
-    return c.json(parseBackendResponse(ExpenseHistoryResponseSchema, data, 'expense history'), 200);
+    return c.json(data, 200);
   });
 
   app.openapi(createExpenseRoute, async c => {
-    await requestBackend(c, {
+    await requestUpstream(c, {
+      upstream: 'matsuApi',
       path: '/expenses',
       method: 'POST',
       body: c.req.valid('json'),
+      expectedStatus: 201,
+      responseSchema: z.unknown(),
+      operation: 'create expense',
     });
 
     return c.json({ created: true as const }, 201);
   });
 
   app.openapi(paymentMethodsRoute, async c => {
-    const data = await requestBackend(c, { path: '/payment-methods' });
-    return c.json(
-      parseBackendResponse(ExpensePaymentMethodListSchema, data, 'payment method list'),
-      200
-    );
+    const data = await requestUpstream(c, {
+      upstream: 'matsuApi',
+      path: '/payment-methods',
+      expectedStatus: 200,
+      responseSchema: ExpensePaymentMethodListSchema,
+      operation: 'payment method list',
+    });
+    return c.json(data, 200);
   });
 
   app.openapi(categoriesRoute, async c => {
-    const data = await requestBackend(c, { path: '/categories' });
-    return c.json(parseBackendResponse(ExpenseCategoryListSchema, data, 'category list'), 200);
+    const data = await requestUpstream(c, {
+      upstream: 'matsuApi',
+      path: '/categories',
+      expectedStatus: 200,
+      responseSchema: ExpenseCategoryListSchema,
+      operation: 'category list',
+    });
+    return c.json(data, 200);
   });
 };

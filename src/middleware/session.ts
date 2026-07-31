@@ -27,6 +27,7 @@ export const clearSessionCookie = (c: Context): void => {
     path: '/',
     httpOnly: true,
     sameSite: 'Lax',
+    secure: config.cookieSecure,
   });
 };
 

@@ -77,10 +77,34 @@ const command = (parts: (string | number)[]): Promise<string | number | null> =>
     socket.on('error', reject);
   });
 
-export const redis = {
+export interface RedisClient {
+  get: (key: string) => Promise<string | number | null>;
+  getDel: (key: string) => Promise<string | number | null>;
+  setJson: (key: string, value: unknown, ttlSeconds: number) => Promise<string | number | null>;
+  del: (key: string) => Promise<string | number | null>;
+}
+
+const networkRedis: RedisClient = {
   get: (key: string) => command(['GET', key]),
   getDel: (key: string) => command(['GETDEL', key]),
   setJson: (key: string, value: unknown, ttlSeconds: number) =>
     command(['SET', key, JSON.stringify(value), 'EX', ttlSeconds]),
   del: (key: string) => command(['DEL', key]),
+};
+
+let activeRedis = networkRedis;
+
+export const redis: RedisClient = {
+  get: key => activeRedis.get(key),
+  getDel: key => activeRedis.getDel(key),
+  setJson: (key, value, ttlSeconds) => activeRedis.setJson(key, value, ttlSeconds),
+  del: key => activeRedis.del(key),
+};
+
+export const setRedisClientForTests = (client: RedisClient): void => {
+  activeRedis = client;
+};
+
+export const resetRedisClientForTests = (): void => {
+  activeRedis = networkRedis;
 };

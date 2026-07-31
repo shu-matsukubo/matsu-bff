@@ -5,8 +5,10 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { config } from './config.js';
 import { registerApiRoutes } from './routes/api.js';
+import { registerArcadeRoutes } from './routes/arcade.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { registerToolboxRoutes } from './routes/toolbox.js';
 import { AuthError } from './types/auth-error.js';
 import type { AppEnv } from './types/app.js';
 import { getErrorMessage, HttpError, type PublicErrorStatus } from './types/http-error.js';
@@ -24,6 +26,8 @@ export const openApiConfig = {
     { name: 'Authentication' },
     { name: 'Expenses' },
     { name: 'Expense masters' },
+    { name: 'Toolbox' },
+    { name: 'Arcade' },
   ],
 };
 
@@ -33,6 +37,8 @@ const errorResponse = (c: Context, status: PublicErrorStatus, message: string): 
       return c.json({ message }, 400);
     case 401:
       return c.json({ message }, 401);
+    case 404:
+      return c.json({ message }, 404);
     case 409:
       return c.json({ message }, 409);
     case 422:
@@ -79,6 +85,8 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
 registerHealthRoutes(app);
 registerAuthRoutes(app);
 registerApiRoutes(app);
+registerToolboxRoutes(app);
+registerArcadeRoutes(app);
 
 app.doc('/openapi.json', openApiConfig);
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));
@@ -104,6 +112,7 @@ app.onError((error, c) => {
     const status: PublicErrorStatus =
       error.statusCode === 400 ||
       error.statusCode === 401 ||
+      error.statusCode === 404 ||
       error.statusCode === 409 ||
       error.statusCode === 422
         ? error.statusCode

@@ -15,7 +15,7 @@
     "check": "npm run lint && npm run typecheck && npm run format:check",
     "fix": "npm run lint:fix && npm run format",
     "openapi:generate": "tsx scripts/generate-openapi.ts && prettier --write openapi/openapi.json",
-    "openapi:check": "npm run openapi:generate && git diff --exit-code -- openapi/openapi.json",
+    "openapi:check": "tsx scripts/check-openapi.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {

@@ -7,11 +7,12 @@ The frontend talks to this service instead of calling the Laravel API or auth se
 ## Responsibilities
 
 - Own the browser session using an `HttpOnly` cookie.
-- Store auth server access and refresh tokens in Redis.
+- Store resource-specific access and refresh tokens in Redis.
 - Act as an OAuth confidential client using Authorization Code + PKCE.
 - Call `matsu-auth` for code exchange and refresh-token rotation.
-- Expose explicit typed routes backed by `matsu-api` with `Authorization: Bearer <access token>`.
-- Validate browser requests and successful Laravel responses against the BFF contract.
+- Expose explicit typed routes backed by `matsu-api`, `matsu-toolbox-api`, and
+  `matsu-arcade-api`, each with its own Bearer token.
+- Validate browser requests and successful upstream responses against the BFF contract.
 
 ## Tech Stack
 
@@ -36,7 +37,10 @@ Default local endpoints:
 - BFF: `http://localhost:18082`
 - Frontend origin: `http://localhost:5173`
 - Laravel API target: `http://host.docker.internal:18080/api`
+- Toolbox API target: `http://host.docker.internal:18083/api`
+- Arcade API target: `http://host.docker.internal:18085/api`
 - Auth server target: `http://host.docker.internal:18081`
+- Arcade Auth target: `http://host.docker.internal:18084`
 - Redis: `localhost:16379`
 - OpenAPI JSON: `http://localhost:18082/openapi.json`
 - Swagger UI: `http://localhost:18082/docs`
@@ -85,11 +89,15 @@ PORT=18082
 PUBLIC_BASE_URL=http://localhost:18082
 FRONTEND_ORIGIN=http://localhost:5173
 BACKEND_API_BASE_URL=http://host.docker.internal:18080/api
+TOOLBOX_API_BASE_URL=http://host.docker.internal:18083/api
+ARCADE_API_BASE_URL=http://host.docker.internal:18085/api
 AUTH_BASE_URL=http://host.docker.internal:18081
 AUTH_PUBLIC_BASE_URL=http://localhost:18081
+ARCADE_AUTH_BASE_URL=http://host.docker.internal:18084
 AUTH_CLIENT_ID=matsu-bff
 AUTH_CLIENT_SECRET=matsu-bff-dev-secret
 AUTH_SCOPE=matsu-api
+UPSTREAM_TIMEOUT_MILLISECONDS=5000
 REDIS_URL=redis://redis:6379
 SESSION_COOKIE_NAME=matsu-session
 SESSION_TTL_SECONDS=2592000
@@ -107,15 +115,19 @@ For local HTTP development, `COOKIE_SECURE=false` is expected. Use `COOKIE_SECUR
 - `src/middleware/session.ts`: Session cookie and auth middleware.
 - `src/routes/health.ts`: `GET /health`.
 - `src/routes/auth.ts`: `/auth/*` routes.
-- `src/routes/api.ts`: Explicit typed Laravel-backed routes.
+- `src/routes/api.ts`: Explicit typed `matsu-api` routes.
+- `src/routes/toolbox.ts`: Explicit typed Toolbox routes.
+- `src/routes/arcade.ts`: Explicit typed Arcade routes.
 - `src/schemas`: Request and response contracts shared by Zod and OpenAPI.
 - `src/services/authClient.ts`: HTTP client for `matsu-auth`.
 - `src/services/authorizationFlowStore.ts`: Short-lived OAuth state and PKCE verifier storage.
-- `src/services/sessionStore.ts`: Redis-backed session store.
-- `src/services/sessionRefresh.ts`: Token refresh helper.
+- `src/services/sessionStore.ts`: Redis-backed, versioned multi-resource session store.
+- `src/services/sessionRefresh.ts`: Resource-specific token refresh helper.
+- `src/services/upstreamClient.ts`: Resource-aware upstream client and response validation.
 - `src/services/redisClient.ts`: Redis client factory.
 - `src/types`: Shared TypeScript types.
 - `scripts/generate-openapi.ts`: Reproducible OpenAPI artifact generation.
+- `scripts/check-openapi.ts`: Git-independent in-memory OpenAPI artifact comparison.
 
 ## Docker
 
