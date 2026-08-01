@@ -22,21 +22,22 @@ services:
       - AUTH_CLIENT_SECRET=matsu-bff-dev-secret
       - AUTH_SCOPE=matsu-api
       - UPSTREAM_TIMEOUT_MILLISECONDS=5000
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://bff-redis:6379
       - SESSION_COOKIE_NAME=matsu-session
       - SESSION_TTL_SECONDS=2592000
       - AUTHORIZATION_FLOW_TTL_SECONDS=600
       - COOKIE_SECURE=false
     depends_on:
-      - redis
+      - bff-redis
 
-  redis:
+  bff-redis:
     image: redis:7.4-alpine
     container_name: matsu-bff-redis
     ports:
       - 16379:6379
     volumes:
-      - redis_data:/data
+      - bff_redis_data:/data
 
 volumes:
-  redis_data:
+  bff_redis_data:
+    name: matsu-bff-redis-data
