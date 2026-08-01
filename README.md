@@ -1,157 +1,106 @@
-# matsu BFF
+# matsu-bff
 
-TypeScript + Hono BFF for the matsu workspace.
+`matsu-front` 専用の Backend for Frontend（BFF）です。ブラウザからのリクエストを受け、ログインとセッションを仲介し、家計簿・Toolbox・Arcade の各 API を呼び分けます。
 
-The frontend talks to this service instead of calling the Laravel API or auth server directly.
+サービスの責務と境界は [BFF 設計](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/components/bff.md) を参照してください。
 
-## Responsibilities
+## 必要な環境
 
-- Own the browser session using an `HttpOnly` cookie.
-- Store resource-specific access and refresh tokens in Redis.
-- Act as an OAuth confidential client using Authorization Code + PKCE.
-- Call `matsu-auth` for code exchange and refresh-token rotation.
-- Expose explicit typed routes backed by `matsu-api`, `matsu-toolbox-api`, and
-  `matsu-arcade-api`, each with its own Bearer token.
-- Validate browser requests and successful upstream responses against the BFF contract.
+- Docker Desktop または Docker Engine
+- Docker Compose
+- Node.js 22 と npm（ホストで品質チェックや生成処理を行う場合）
 
-## Tech Stack
+画面操作を含む一連の機能を確認するには、Front、各 API、各認証サーバーも必要です。ワークスペース全体の起動方法は親リポジトリの `README.md` と `DEVELOPMENT.md` を参照してください。
 
-- TypeScript
-- Hono
-- `@hono/node-server`
-- `@hono/zod-openapi`
-- Zod
-- Redis
-- Docker / Docker Compose
+## 環境構築と起動
 
-## Local Development
-
-Start the BFF and Redis containers with hot reload:
+このリポジトリで次を実行します。
 
 ```bash
-docker compose up
+docker compose up --build bff
 ```
 
-Default local endpoints:
+`bff` と開発用 Redis が起動し、ソース変更は自動で反映されます。
 
-- BFF: `http://localhost:18082`
-- Frontend origin: `http://localhost:5173`
-- Laravel API target: `http://host.docker.internal:18080/api`
-- Toolbox API target: `http://host.docker.internal:18083/api`
-- Arcade API target: `http://host.docker.internal:18085/api`
-- Auth server target: `http://host.docker.internal:18081`
-- Arcade Auth target: `http://host.docker.internal:18084`
-- Redis: `localhost:16379`
-- OpenAPI JSON: `http://localhost:18082/openapi.json`
-- Swagger UI: `http://localhost:18082/docs`
+- BFF: <http://localhost:18082>
+- ヘルスチェック: <http://localhost:18082/health>
+- OpenAPI: <http://localhost:18082/openapi.json>
+- Swagger UI: <http://localhost:18082/docs>
 
-## API Contract
-
-The BFF is the source of truth for browser-facing request and response types. Route definitions
-and Zod schemas generate the OpenAPI document, and the same schemas validate requests and
-successful Laravel responses at runtime. An upstream response that violates the contract returns
-`502` instead of reaching the frontend as untyped data.
-
-After changing a route or schema, regenerate the committed artifact:
+停止するには次を実行します。通常の停止では Redis の named volume を削除しません。
 
 ```bash
-npm run openapi:generate
+docker compose down
 ```
 
-## Scripts
+## 開発方法
 
-| Script                     | Description                                                   |
-| -------------------------- | ------------------------------------------------------------- |
-| `npm run dev`              | Start the app with `tsx watch`.                               |
-| `npm run build`            | Compile TypeScript into `dist/`.                              |
-| `npm run start`            | Run the compiled `dist/index.js`.                             |
-| `npm run lint`             | Run type-aware ESLint with zero warnings allowed.             |
-| `npm run lint:fix`         | Auto-fix ESLint issues where possible.                        |
-| `npm run format`           | Format the project with Prettier.                             |
-| `npm run format:check`     | Check Prettier formatting.                                    |
-| `npm run typecheck`        | Type-check source, tests, and scripts without emitting files. |
-| `npm run check`            | Run ESLint, TypeScript, and Prettier checks.                  |
-| `npm run fix`              | Auto-fix ESLint issues and format the project.                |
-| `npm run openapi:generate` | Generate `openapi/openapi.json` from the registered routes.   |
-| `npm run openapi:check`    | Verify that the generated OpenAPI artifact is current.        |
-| `npm test`                 | Run contract smoke tests.                                     |
+依存関係をホストへインストールする場合は次を実行します。
 
-On Windows PowerShell, use `npm.cmd run ...` if `npm.ps1` is blocked by execution policy.
-
-## Environment
-
-See `.env.example` for local defaults.
-
-Important values:
-
-```text
-PORT=18082
-PUBLIC_BASE_URL=http://localhost:18082
-FRONTEND_ORIGIN=http://localhost:5173
-BACKEND_API_BASE_URL=http://host.docker.internal:18080/api
-TOOLBOX_API_BASE_URL=http://host.docker.internal:18083/api
-ARCADE_API_BASE_URL=http://host.docker.internal:18085/api
-AUTH_BASE_URL=http://host.docker.internal:18081
-AUTH_PUBLIC_BASE_URL=http://localhost:18081
-ARCADE_AUTH_BASE_URL=http://host.docker.internal:18084
-AUTH_CLIENT_ID=matsu-bff
-AUTH_CLIENT_SECRET=matsu-bff-dev-secret
-AUTH_SCOPE=matsu-api
-UPSTREAM_TIMEOUT_MILLISECONDS=5000
-REDIS_URL=redis://bff-redis:6379
-SESSION_COOKIE_NAME=matsu-session
-SESSION_TTL_SECONDS=2592000
-AUTHORIZATION_FLOW_TTL_SECONDS=600
-COOKIE_SECURE=false
+```bash
+npm ci
 ```
 
-For local HTTP development, `COOKIE_SECURE=false` is expected. Use `COOKIE_SECURE=true` for HTTPS environments.
+主なコマンドは次のとおりです。Windows PowerShell で `npm.ps1` が拒否される場合は、`npm` の代わりに `npm.cmd` を使ってください。
 
-## Project Structure
+| コマンド                   | 用途                                         |
+| -------------------------- | -------------------------------------------- |
+| `npm run dev`              | 開発サーバーを起動する                       |
+| `npm run check`            | lint、型検査、フォーマット検査をまとめて行う |
+| `npm test`                 | コントラクトのスモークテストを行う           |
+| `npm run build`            | TypeScript をビルドする                      |
+| `npm run openapi:generate` | OpenAPI の生成物を更新する                   |
+| `npm run openapi:check`    | OpenAPI の生成物が最新か確認する             |
 
-- `src/app.ts`: OpenAPIHono app, middleware, OpenAPI JSON, and Swagger UI.
-- `src/index.ts`: Node server entry point.
-- `src/config.ts`: Environment configuration.
-- `src/middleware/session.ts`: Session cookie and auth middleware.
-- `src/routes/health.ts`: `GET /health`.
-- `src/routes/auth.ts`: `/auth/*` routes.
-- `src/routes/api.ts`: Explicit typed `matsu-api` routes.
-- `src/routes/toolbox.ts`: Explicit typed Toolbox routes.
-- `src/routes/arcade.ts`: Explicit typed Arcade routes.
-- `src/schemas`: Request and response contracts shared by Zod and OpenAPI.
-- `src/services/authClient.ts`: HTTP client for `matsu-auth`.
-- `src/services/authorizationFlowStore.ts`: Short-lived OAuth state and PKCE verifier storage.
-- `src/services/sessionStore.ts`: Redis-backed, versioned multi-resource session store.
-- `src/services/sessionRefresh.ts`: Resource-specific token refresh helper.
-- `src/services/upstreamClient.ts`: Resource-aware upstream client and response validation.
-- `src/services/redisClient.ts`: Redis client factory.
-- `src/types`: Shared TypeScript types.
-- `scripts/generate-openapi.ts`: Reproducible OpenAPI artifact generation.
-- `scripts/check-openapi.ts`: Git-independent in-memory OpenAPI artifact comparison.
+ホストで `npm run dev` を使う場合は、Redis と接続先サービスを別途起動し、必要な環境変数を実行環境へ設定してください。
 
-## Docker
+## 設定
 
-The Docker environment is intended for local development only. The BFF owns its Redis
-container, and other services should not depend on this Redis instance.
+設定項目とローカル既定値は `.env.example`、Docker 開発環境の設定は `docker-compose.yml` を参照してください。主な設定カテゴリは次のとおりです。
 
-Run all quality checks in a one-off container (Redis is not required):
+- BFF の公開 URL と許可する Front の Origin
+- 家計簿・Toolbox・Arcade API の接続先
+- 通常認証・Arcade 認証サーバーの接続先
+- Redis、セッション Cookie、有効期限、上流タイムアウト
+
+リポジトリ内のクライアントシークレットはローカル開発専用です。本番用の秘密情報をコミットしないでください。
+
+## API 契約
+
+ブラウザ向け API を変更した場合は、実装と同じ変更で `npm run openapi:generate` を実行し、生成済みの `openapi/openapi.json` を更新してください。契約の管理方針は [API 契約](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/architecture/api-contracts.md) を参照してください。
+
+## 品質確認と CI
+
+Pull Request の作成前に、CI と同じ主要な確認を実行します。
+
+```bash
+npm run check
+npm run openapi:check
+npm test
+npm run build
+```
+
+依存関係をホストへ入れずに静的解析を実行する場合は、次のコマンドも利用できます。
 
 ```bash
 docker compose run --rm --no-deps bff npm run check
 ```
 
-Auto-fix ESLint issues and format the project through Docker:
+GitHub Actions は `develop` または `main` 向けの Pull Request で実行されます。全体の品質ゲート方針は [品質ゲート](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/architecture/quality-gates.md) を参照してください。
+
+## 最低限の運用
+
+稼働確認には `/health`、ログ確認には次のコマンドを使います。
 
 ```bash
-docker compose run --rm --no-deps bff npm run fix
+docker compose logs -f bff
 ```
 
-## CI
+認証やセッションに関する問題を調査する前に、BFF、Redis、接続先サービスが起動していることと、`docker-compose.yml` の接続先が環境に合っていることを確認してください。
 
-GitHub Actions runs on pull requests targeting `develop` or `main`. The workflow installs
-dependencies with `npm ci`, runs the quality checks, verifies the generated OpenAPI artifact,
-runs the tests, and builds the TypeScript project.
+## 関連ドキュメント
 
-```text
-.github/workflows/ci.yml
-```
+- [BFF 設計](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/components/bff.md)
+- [API 契約](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/architecture/api-contracts.md)
+- [認証とセッション](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/architecture/authentication.md)
+- [品質ゲート](https://github.com/shu-matsukubo/matsu-docs/blob/main/docs/architecture/quality-gates.md)
